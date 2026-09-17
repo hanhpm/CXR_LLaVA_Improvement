@@ -45,6 +45,27 @@ The project-local `CRITERIA.md` is authoritative for model assumptions, Colab re
 
 ## Validation and reporting
 
+### Experiment report workflow
+
+When the user requests an experiment report for this CXR-LLaVA project, use
+`experiment_analysis_template.md` as the required structure and use the
+executed notebook/script outputs as evidence. Create the report under the
+project-local `reports/` directory before writing it:
+
+```python
+from pathlib import Path
+
+output_path = Path("reports") / "<descriptive-report-name>.md"
+output_path.parent.mkdir(parents=True, exist_ok=True)
+```
+
+The same workflow applies to any future CXR-LLaVA report request in this
+repository: keep reports in `reports/`, set `output_path` inside that folder,
+and preserve raw output, environment details, limitations, and the report's
+classification as smoke test, metric-complete evaluation, or benchmark claim.
+Do not overwrite an existing report unless explicitly requested; choose a new
+descriptive filename when needed.
+
 Before claiming completion:
 
 1. Check the relevant files and expected behavior.
