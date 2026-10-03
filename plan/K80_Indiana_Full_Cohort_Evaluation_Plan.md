@@ -1,7 +1,7 @@
 # Plan: đánh giá CXR-LLaVA trên cohort Indiana frontal đầy đủ, chạy K80
 
 - **Ngày:** 2026-10-04.
-- **Trạng thái:** In progress — inventory, NLM-view selection, frozen cohort và GT labeling hoàn tất; preflight K80 PASS; gate/inference dài chưa chạy.
+- **Trạng thái:** In progress — inventory, NLM-view selection, frozen cohort và GT labeling hoàn tất; K80 preflight và gate 10/10 PASS; full inference đang chạy.
 - **Mục tiêu:** tái thực hiện phương pháp đánh giá external report generation của paper bằng checkpoint phát hành, trên cohort Indiana được dựng lại từ dữ liệu local.
 - **Phần paper được đối chiếu:** Table 4, CXR-LLaVA trên Indiana. Không bao gồm training reproduction, MIMIC Table 2, CheXpert classification Table 3, các model đối chứng hoặc đánh giá radiologist.
 - **Tên kết quả dự kiến:** “Indiana full-cohort evaluation of the released CXR-LLaVA checkpoint on K80”. Chỉ dùng “exact benchmark reproduction” nếu xác minh được manifest, checkpoint và phương pháp đánh giá gốc.
@@ -33,11 +33,11 @@ Dataset root mặc định: `../datasets/NLMCRX` tính từ project; ảnh ở `
 - NLM liệt kê 3.864 frontal và 3.689 lateral; so với local, 3.818 ảnh chỉ ở frontal, 3.644 chỉ ở lateral, 4 ở cả hai danh sách, 4 không có nhãn. Tám ảnh mâu thuẫn/thiếu nhãn bị loại, không đoán view từ suffix/caption. PA/AP không được suy từ nhãn frontal của NLM.
 - `scripts/select_indiana_nlm_views.py` chọn 3.667 report/ảnh frontal hợp lệ; 3.794 frontal candidates, 120 report có nhiều frontal, chọn image ID tăng dần và ghi 127 frontal không chọn. 288 report bị loại, tất cả có lý do. Cohort + source hashes + annotation audit ở `result/indiana_full_k80_20261004_inventory02/nlm_review_01/`.
 - Pairing lấy trực tiếp từ `parentImage` của XML và mọi image ID đều có prefix đúng report UID; `manual_pairing_visual_review=false` được ghi trong config. Reference gốc có thể mô tả toàn study gồm nhiều view. Vì vậy kết quả là reconstructed cohort theo source view labels, không phải exact cohort paper hoặc new human report-pairing review.
-- Official CheXpert sample gate chạy trên pinned revisions và khớp `labeled_reports.csv` (4 rows × 15 columns). Chưa label full references.
+- Official CheXpert sample gate chạy trên pinned revisions và khớp `labeled_reports.csv` (4 rows × 15 columns).
 - `scripts/finalize_indiana_cohort.py` giữ vai trò cho nhánh local reviewer; nhánh NLM dùng source labels có provenance riêng và đã tạo frozen manifest.
 - Official CheXpert GT-only labeling hoàn tất cho 3.667 references: sample gate PASS, row/ID/text alignment PASS. `gt_labeling/support.csv` và `provenance.json` ghi raw labels, hash và support. Support khác supplementary paper rõ rệt, ví dụ Cardiomegaly local 566 positive/1.824 negative so với paper 371/727. Nguyên nhân chính xác chưa xác định; cohort và cách lấy FINDINGS+IMPRESSION khác paper có thể góp phần. Không sửa nhãn/cohort để ép khớp.
 - `bash scripts/run_indiana_full_k80.sh --check` PASS: 4 K80 còn khoảng 11,11 GiB/GPU, đúng model/labeler revisions, cohort và GT provenance.
-- **Gate hiện tại:** chạy 10 ca trên manifest mới, dừng sau ca đầu và resume, kiểm tra không duplicate/config mismatch; chỉ sau đó mới full inference.
+- Gate trên manifest mới hoàn tất 10/10 ca; dừng sau ca đầu rồi resume không ghi đè checkpoint; seed khác bị từ chối. Full inference đang chạy trong `result/indiana_full_k80_20261004_031940_1252388/`. Đây là job dài, chưa có metrics cuối.
 
 ### Baseline đã chạy
 
