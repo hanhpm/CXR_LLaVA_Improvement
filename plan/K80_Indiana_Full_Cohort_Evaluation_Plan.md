@@ -1,7 +1,7 @@
 # Plan: đánh giá CXR-LLaVA trên cohort Indiana frontal đầy đủ, chạy K80
 
 - **Ngày:** 2026-10-04.
-- **Trạng thái:** Planned — tài liệu triển khai; chưa chạy inference toàn bộ cohort.
+- **Trạng thái:** In progress — inventory, NLM-view selection, frozen cohort và GT labeling hoàn tất; preflight K80 PASS; gate/inference dài chưa chạy.
 - **Mục tiêu:** tái thực hiện phương pháp đánh giá external report generation của paper bằng checkpoint phát hành, trên cohort Indiana được dựng lại từ dữ liệu local.
 - **Phần paper được đối chiếu:** Table 4, CXR-LLaVA trên Indiana. Không bao gồm training reproduction, MIMIC Table 2, CheXpert classification Table 3, các model đối chứng hoặc đánh giá radiologist.
 - **Tên kết quả dự kiến:** “Indiana full-cohort evaluation of the released CXR-LLaVA checkpoint on K80”. Chỉ dùng “exact benchmark reproduction” nếu xác minh được manifest, checkpoint và phương pháp đánh giá gốc.
@@ -23,6 +23,21 @@
 | CheXpert test | Chưa có bộ 518 ảnh/nhãn chuẩn trong datasets | Chưa thể chạy Table 3 |
 
 Dataset root mặc định: `../datasets/NLMCRX` tính từ project; ảnh ở `NLMCXR_png/`, XML ở `NLMCXR_reports/ecgen-radiology/`. Mọi script mới cần nhận đường dẫn qua CLI/env.
+
+### Execution log — 2026-10-04
+
+- Phase A đã chạy bằng `scripts/inventory_indiana.py`. Inventory đầy đủ nằm trong `result/indiana_full_k80_20261004_inventory02/` (được `.gitignore` loại khỏi Git).
+- Đếm lại: 3.955 XML/report rows; 7.470 image references, tất cả file tồn tại và decode được; 3.927 reports có ID và reference không rỗng; 3.405 reports có nhiều image references; 104 reports không có image reference; 28 reports thiếu reference text.
+- Không có duplicate report IDs. Có 3 nhóm duplicate image SHA-256 được ghi trong `inventory/summary.json`; chúng cần audit, không tự gộp.
+- Có thêm [`frontal_final.csv`](https://data.lhncbc.nlm.nih.gov/public/chest-xray/frontal_final.csv) và [`lateral_final.csv`](https://data.lhncbc.nlm.nih.gov/public/chest-xray/lateral_final.csv) do NLM công bố; [trang nguồn NLM](https://lhncbc.nlm.nih.gov/CHRB/CHRB-resources.html) nói nhãn được tạo bằng cách xem và phân loại từng ảnh. Chúng là external human labels, không phải review thủ công mới của dự án.
+- NLM liệt kê 3.864 frontal và 3.689 lateral; so với local, 3.818 ảnh chỉ ở frontal, 3.644 chỉ ở lateral, 4 ở cả hai danh sách, 4 không có nhãn. Tám ảnh mâu thuẫn/thiếu nhãn bị loại, không đoán view từ suffix/caption. PA/AP không được suy từ nhãn frontal của NLM.
+- `scripts/select_indiana_nlm_views.py` chọn 3.667 report/ảnh frontal hợp lệ; 3.794 frontal candidates, 120 report có nhiều frontal, chọn image ID tăng dần và ghi 127 frontal không chọn. 288 report bị loại, tất cả có lý do. Cohort + source hashes + annotation audit ở `result/indiana_full_k80_20261004_inventory02/nlm_review_01/`.
+- Pairing lấy trực tiếp từ `parentImage` của XML và mọi image ID đều có prefix đúng report UID; `manual_pairing_visual_review=false` được ghi trong config. Reference gốc có thể mô tả toàn study gồm nhiều view. Vì vậy kết quả là reconstructed cohort theo source view labels, không phải exact cohort paper hoặc new human report-pairing review.
+- Official CheXpert sample gate chạy trên pinned revisions và khớp `labeled_reports.csv` (4 rows × 15 columns). Chưa label full references.
+- `scripts/finalize_indiana_cohort.py` giữ vai trò cho nhánh local reviewer; nhánh NLM dùng source labels có provenance riêng và đã tạo frozen manifest.
+- Official CheXpert GT-only labeling hoàn tất cho 3.667 references: sample gate PASS, row/ID/text alignment PASS. `gt_labeling/support.csv` và `provenance.json` ghi raw labels, hash và support. Support khác supplementary paper rõ rệt, ví dụ Cardiomegaly local 566 positive/1.824 negative so với paper 371/727. Nguyên nhân chính xác chưa xác định; cohort và cách lấy FINDINGS+IMPRESSION khác paper có thể góp phần. Không sửa nhãn/cohort để ép khớp.
+- `bash scripts/run_indiana_full_k80.sh --check` PASS: 4 K80 còn khoảng 11,11 GiB/GPU, đúng model/labeler revisions, cohort và GT provenance.
+- **Gate hiện tại:** chạy 10 ca trên manifest mới, dừng sau ca đầu và resume, kiểm tra không duplicate/config mismatch; chỉ sau đó mới full inference.
 
 ### Baseline đã chạy
 
@@ -127,7 +142,7 @@ image_sha256,xml_sha256,view_label,view_evidence,selection_status,exclusion_reas
 
 ## 8. Phase E — Runner dài và phục hồi khi gián đoạn
 
-**Triển khai:** tạo `scripts/run_indiana_full_k80.sh` dựa trên `run_indiana50_k80.sh`, nhận `--cohort`, output root, GPU IDs và số ca từ manifest. File này **chưa được tạo** trong bước viết plan.
+**Triển khai:** `scripts/run_indiana_full_k80.sh` đã được tạo dựa trên runner 50 ca, dùng cohort đóng băng, output root và `CUDA_VISIBLE_DEVICES`; gate và full execution đang chờ chạy.
 
 - Preflight checkpoint, dependencies, GPU RAM, Java/labeler, paths, hashes, view/review evidence và N.
 - Lưu full configs, prompt audit, package freezes, git commit/status/diff, scripts snapshot và model/source hashes.
