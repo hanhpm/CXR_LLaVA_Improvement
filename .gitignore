@@ -1,0 +1,17 @@
+# Local datasets, downloaded checkpoints, and experiment artifacts.
+/datasets/
+/model_cache/
+/data/
+/result/
+
+# Generated review image bundles; keep the written reports in reports/.
+/reports/exp02_example_images_*/
+/reports/exp02_example_images_*.zip
+
+# Python and notebook caches, local secrets, and logs.
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.env
+.env.*
+*.log
